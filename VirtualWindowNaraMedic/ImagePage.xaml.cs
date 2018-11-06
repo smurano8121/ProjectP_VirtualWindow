@@ -26,7 +26,7 @@ namespace VirtualWindowUWP
     public sealed partial class ImagePage : Page
     {
         // To get picture library, we have to declare the function in app manifest.
-        private static StorageFolder pictureLibrary = KnownFolders.PicturesLibrary;
+        private static StorageFolder pictureLibrary = KnownFolders.VideosLibrary;
         // The list which contains stored pictures in picture library.
         private static IReadOnlyList<StorageFile> storedPicture;
         // File number index of stored picture which is shown in Image view.

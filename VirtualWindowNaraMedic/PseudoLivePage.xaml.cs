@@ -34,6 +34,8 @@ namespace VirtualWindowUWP
         private static List<StorageItemThumbnail> thumbnailList;
         // Storage File Querry for change detecting
         private static StorageFileQueryResult queryResult;
+        // 天気取得の関数を呼び出す時間トリガー
+        private DispatcherTimer tikeda;
 
         public PseudoLivePage()
         {
@@ -53,6 +55,12 @@ namespace VirtualWindowUWP
             // Show first image file stored in picture library.
             // Note: "first image" means the top file when files are sorted by Name.
             ReadVideo();
+
+            // 天気取得関数の時限起動設定
+            this.tikeda = new DispatcherTimer();
+            this.tikeda.Interval = TimeSpan.FromSeconds(20);
+            this.tikeda.Tick += UpdateVideo;
+            this.tikeda.Start();
         }
 
         public static async void GetVideoList()
@@ -80,6 +88,22 @@ namespace VirtualWindowUWP
             var stream = await video.OpenAsync(Windows.Storage.FileAccessMode.Read);
 
             videoObject.SetSource(stream, video.ContentType);
+        }
+
+        private static async void ReadVideo2(string weather)
+        {
+            DateTime now = DateTime.Now;
+            int month = now.Month;
+            int hour = now.Hour;
+            int minute = now.Minute;
+            string fileName = month.ToString() + "_" + weather + "_" + now.ToString("HH") + ".mp4";
+            Debug.WriteLine(fileName);
+            StorageFolder targetDir = await StorageFolder.GetFolderFromPathAsync("C:\\Users\\strin\\Videos\\virtualWindow\\" + month + "\\" + weather);
+            StorageFile targetVideo = await targetDir.GetFileAsync(fileName);
+
+            var stream = await targetVideo.OpenAsync(Windows.Storage.FileAccessMode.Read);
+
+            videoObject.SetSource(stream, targetVideo.ContentType);
         }
 
         public static async void UpdateThumbs()
@@ -146,6 +170,18 @@ namespace VirtualWindowUWP
         {
             videoIndex = i;
             ReadVideo();
+        }
+
+        private static void UpdateVideo(object sender, object e)
+        {
+            string currentWeather = GetWeather();
+            ReadVideo2(currentWeather);
+        }
+
+        public static string GetWeather()
+        {
+            // syasoda 実装予定
+            return "sunny";
         }
     }
 }
