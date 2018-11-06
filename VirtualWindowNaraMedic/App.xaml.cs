@@ -120,6 +120,7 @@ namespace VirtualWindowUWP
             // Get file list of Video Page and Image page
             ImagePage.GetImageList();
             VideoPage.GetVideoList();
+            PseudoLivePage.GetVideoList();
 
         }
 

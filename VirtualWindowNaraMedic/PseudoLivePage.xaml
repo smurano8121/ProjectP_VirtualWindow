@@ -5,16 +5,9 @@
     xmlns:local="using:VirtualWindowUWP"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    xmlns:vlc="using:VLC"
     mc:Ignorable="d">
 
- 
-    <Grid>
-        <vlc:MediaElement
-            x:Name="vlc_player"
-            AreTransportControlsEnabled="False"
-            Stretch="UniformToFill">
-        </vlc:MediaElement>
+    <Grid Background="Black">
+        <MediaElement x:Name="PseudoLivePlayer" AutoPlay="True" IsLooping="True" Stretch="UniformToFill"/>
     </Grid>
-
 </Page>
