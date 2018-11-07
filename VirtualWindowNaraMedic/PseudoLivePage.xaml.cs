@@ -27,114 +27,58 @@ namespace VirtualWindowUWP
     {
         // To get video library, we have to declare the function in app manifest.
         private static StorageFolder videoLibrary = KnownFolders.VideosLibrary;
-        // The list which contains stored videos in video library.
-        private static IReadOnlyList<StorageFile> storedVideo;
-        // File number index of stored video which is shown in Media Element.
-        private static int videoIndex = 0;
         // Media element static object
         private static MediaElement videoObject;
-        // Thumbnail object
-        private static List<StorageItemThumbnail> thumbnailList;
-        // Storage File Querry for change detecting
-        private static StorageFileQueryResult queryResult;
         // 天気取得の関数を呼び出す時間トリガー
-        private DispatcherTimer tikeda;
-
+        private DispatcherTimer darksky_request_manage;
+        private static string hh;
 
         public PseudoLivePage()
         {
             this.InitializeComponent();
-
             // set MediaElement into static variable
             videoObject = PseudoLivePlayer;
 
-            // Show first image file stored in picture library.
-            // Note: "first image" means the top file when files are sorted by Name.
-            ReadVideo();
+            this.Loaded += UpdateVideo;
 
             // 天気取得関数の時限起動設定
-            this.tikeda = new DispatcherTimer();
-            this.tikeda.Interval = TimeSpan.FromSeconds(30);
-            this.tikeda.Tick += UpdateVideo;
-            this.tikeda.Start();
-        }
-
-        public static async void GetVideoList()
-        {
-            // Create file query for change detection
-            var options = new Windows.Storage.Search.QueryOptions
-            {
-                FolderDepth = Windows.Storage.Search.FolderDepth.Deep
-            };
-
-            // Add change detection event listener
-            queryResult = videoLibrary.CreateFileQueryWithOptions(options);
-            queryResult.ContentsChanged += QueryContentsChanged;
-
-            // Read videos
-            storedVideo = await queryResult.GetFilesAsync();
-
-            // // get tumbnails
-            UpdateThumbs();
-        }
-
-        private static async void ReadVideo()
-        {
-            StorageFolder targetDir = await StorageFolder.GetFolderFromPathAsync("C:\\Users\\smura\\Videos\\virtualWindow");
-            StorageFile targetVideo = await targetDir.GetFileAsync("aa.mp4");
-            var stream = await targetVideo.OpenAsync(Windows.Storage.FileAccessMode.Read);
-            videoObject.SetSource(stream, targetVideo.ContentType);
+            this.darksky_request_manage = new DispatcherTimer();
+            //this.darksky_request_manage.Interval = TimeSpan.FromSeconds(30);
+            this.darksky_request_manage.Interval = TimeSpan.FromMinutes(5);
+            this.darksky_request_manage.Tick += UpdateVideo;
+            this.darksky_request_manage.Start();
         }
 
         private static async void ReadVideo2(string weather)
         {
+            int hh = 0;
+            int mm = 0;
+            
             DateTime now = DateTime.Now;
-            int month = now.Month;
-            int hour = now.Hour;
-            int minute = now.Minute;
-            string fileName = month.ToString() + "_" + weather + "_" + now.ToString("HH") + ".mp4";
+
+            //例)8,9,10,11,12→10 | 13.14,15,16,17→15 | 18,19,20,21,22→20
+            int real_minute = int.Parse(now.ToString("mm"));
+            int judge = real_minute % 10;
+            if (judge == 1) { mm = real_minute - 1; }
+            else if (judge == 2) { mm = real_minute - 2; }
+            else if (judge == 3) { mm = real_minute + 2; }
+            else if (judge == 4) { mm = real_minute + 1; }
+            else if (judge == 6) { mm = real_minute - 1; }
+            else if (judge == 7) { mm = real_minute - 2; }
+            else if (judge == 8) { mm = real_minute + 2; }
+            else if (judge == 9) { mm = real_minute + 1; }
+            else { mm = real_minute;  }
+
+            if (mm == 60) { hh = 1 + int.Parse(now.ToString("HH")); }
+            else { hh = int.Parse(now.ToString("HH")); }
+            string fileName = now.ToString("MM") + "_" + weather + "_" + hh + "_" + mm + ".mp4";
             Debug.WriteLine(fileName);
-            StorageFolder targetDir = await StorageFolder.GetFolderFromPathAsync("C:\\Users\\smura\\Videos\\" + month + "\\" + weather);
+            StorageFolder targetDir = await StorageFolder.GetFolderFromPathAsync("C:\\Users\\smura\\Videos\\" + now.ToString("MM") + "\\" + weather);
             StorageFile targetVideo = await targetDir.GetFileAsync(fileName);
 
             var stream = await targetVideo.OpenAsync(Windows.Storage.FileAccessMode.Read);
 
             videoObject.SetSource(stream, targetVideo.ContentType);
-        }
-
-        public static async void UpdateThumbs()
-        {
-            thumbnailList = new List<StorageItemThumbnail>();
-            foreach (StorageFile file in storedVideo)
-            {
-                // Get thumbnail
-                const uint requestedSize = 350;
-                const ThumbnailMode thumbnailMode = ThumbnailMode.VideosView;
-                const ThumbnailOptions thumbnailOptions = ThumbnailOptions.UseCurrentScale;
-                var tmp = await file.GetThumbnailAsync(thumbnailMode, requestedSize, thumbnailOptions);
-                thumbnailList.Add(tmp);
-            }
-        }
-
-        private static async void QueryContentsChanged(Windows.Storage.Search.IStorageQueryResultBase sender, object args)
-        {
-            Debug.WriteLine("Change detected");
-
-            // Reset index
-            videoIndex = 0;
-
-            // Read videos
-            storedVideo = null;
-            storedVideo = await queryResult.GetFilesAsync();
-
-            // get tumbnails
-            UpdateThumbs();
-        }
-
-        public static void SetVideoIndex(int i)
-        {
-            videoIndex = i;
-            ReadVideo();
         }
 
         private async void UpdateVideo(object sender, object e)
