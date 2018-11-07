@@ -17,6 +17,9 @@ using Windows.System;
 using Windows.Storage.FileProperties;
 using Windows.Storage.Search;
 using System.Diagnostics;
+using Windows.Web.Http;
+using Newtonsoft.Json.Linq;
+using System.Threading.Tasks;
 
 namespace VirtualWindowUWP
 {
@@ -37,17 +40,10 @@ namespace VirtualWindowUWP
         // 天気取得の関数を呼び出す時間トリガー
         private DispatcherTimer tikeda;
 
+
         public PseudoLivePage()
         {
             this.InitializeComponent();
-
-            // Add KeyDown event handler into CoreWindow
-            // Have to remove this handler when this page is unloaded.
-            Window.Current.CoreWindow.KeyDown += KeyDownHandle;
-            this.Unloaded += (sender, e) =>
-            {
-                Window.Current.CoreWindow.KeyDown -= KeyDownHandle;
-            };
 
             // set MediaElement into static variable
             videoObject = PseudoLivePlayer;
@@ -58,7 +54,7 @@ namespace VirtualWindowUWP
 
             // 天気取得関数の時限起動設定
             this.tikeda = new DispatcherTimer();
-            this.tikeda.Interval = TimeSpan.FromSeconds(20);
+            this.tikeda.Interval = TimeSpan.FromSeconds(30);
             this.tikeda.Tick += UpdateVideo;
             this.tikeda.Start();
         }
@@ -84,10 +80,10 @@ namespace VirtualWindowUWP
 
         private static async void ReadVideo()
         {
-            StorageFile video = storedVideo[videoIndex];
-            var stream = await video.OpenAsync(Windows.Storage.FileAccessMode.Read);
-
-            videoObject.SetSource(stream, video.ContentType);
+            StorageFolder targetDir = await StorageFolder.GetFolderFromPathAsync("C:\\Users\\smura\\Videos\\virtualWindow");
+            StorageFile targetVideo = await targetDir.GetFileAsync("aa.mp4");
+            var stream = await targetVideo.OpenAsync(Windows.Storage.FileAccessMode.Read);
+            videoObject.SetSource(stream, targetVideo.ContentType);
         }
 
         private static async void ReadVideo2(string weather)
@@ -98,7 +94,7 @@ namespace VirtualWindowUWP
             int minute = now.Minute;
             string fileName = month.ToString() + "_" + weather + "_" + now.ToString("HH") + ".mp4";
             Debug.WriteLine(fileName);
-            StorageFolder targetDir = await StorageFolder.GetFolderFromPathAsync("C:\\Users\\strin\\Videos\\virtualWindow\\" + month + "\\" + weather);
+            StorageFolder targetDir = await StorageFolder.GetFolderFromPathAsync("C:\\Users\\smura\\Videos\\" + month + "\\" + weather);
             StorageFile targetVideo = await targetDir.GetFileAsync(fileName);
 
             var stream = await targetVideo.OpenAsync(Windows.Storage.FileAccessMode.Read);
@@ -135,53 +131,61 @@ namespace VirtualWindowUWP
             UpdateThumbs();
         }
 
-        // CoreWindow.KeyDown event handler only used in this page.
-        private void KeyDownHandle(object send, Windows.UI.Core.KeyEventArgs e)
-        {
-            switch (e.VirtualKey)
-            {
-                case VirtualKey.Right:
-                    NextVideo();
-                    break;
-                case VirtualKey.Left:
-                    PreviousVideo();
-                    break;
-            }
-        }
-
-        public static void NextVideo()
-        {
-            videoIndex = videoIndex == storedVideo.Count - 1 ? 0 : videoIndex + 1;
-            ReadVideo();
-        }
-
-        public static void PreviousVideo()
-        {
-            videoIndex = videoIndex == 0 ? storedVideo.Count - 1 : videoIndex - 1;
-            ReadVideo();
-        }
-
-        public static List<StorageItemThumbnail> GetThumbnailList()
-        {
-            return thumbnailList;
-        }
-
         public static void SetVideoIndex(int i)
         {
             videoIndex = i;
             ReadVideo();
         }
 
-        private static void UpdateVideo(object sender, object e)
+        private async void UpdateVideo(object sender, object e)
         {
-            string currentWeather = GetWeather();
+            string currentWeather = await TestSync();
             ReadVideo2(currentWeather);
         }
 
-        public static string GetWeather()
+        private static async Task<string> TestSync()
         {
-            // syasoda 実装予定
-            return "sunny";
+            string endpoint = string.Format("https://api.darksky.net/forecast/579137f0816593c1d256911bc1c62f0f/34.8031949,135.7787311");
+
+            HttpClient client = new HttpClient();
+            HttpResponseMessage result = await client.GetAsync(new Uri(endpoint));
+            string json = await result.Content.ReadAsStringAsync();
+
+            //jsonを解析して結果を取得する
+            JObject root = JObject.Parse(json);
+            string weather = root["currently"]["icon"].ToString();
+
+            var icon = "";
+
+            //sunny
+            if (weather == "clear-day" || weather == "clear-night" || weather == "partly-cloudy-day" || weather == "partly-cloudy-night")
+            {
+                icon = "sunny";
+
+            }
+            //cloudy
+            else if (weather == "cloudy" || weather == "wind")
+            {
+                icon = "cloudy";
+            }
+            //rainny
+            else if (weather == "rain")
+            {
+                icon = "rainny";
+            }
+            //snow
+            else if (weather == "snow" || weather == "sleet")
+            {
+                icon = "sonwly";
+            }
+            //foggy
+            else if (weather == "fog")
+            {
+                icon = "foggy";
+            }
+
+            return icon;
         }
+
     }
 }
