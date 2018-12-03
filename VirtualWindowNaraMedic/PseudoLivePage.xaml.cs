@@ -28,32 +28,44 @@ namespace VirtualWindowUWP
         // To get video library, we have to declare the function in app manifest.
         private static StorageFolder videoLibrary = KnownFolders.VideosLibrary;
         // Media element static object
-        private static MediaElement videoObject;
+        private static MediaElement videoObject1;
+        private static MediaElement videoObject2;
         // 天気取得の関数を呼び出す時間トリガー
         private DispatcherTimer darksky_request_manage;
-        private static string hh;
+        //画像透過の関数を呼び出す時間トリガー
+        private DispatcherTimer transmission_image;
+        //透過speedの調整用
+        private int transmission_speed;
+        //
+        private int count;
 
         public PseudoLivePage()
         {
             this.InitializeComponent();
             // set MediaElement into static variable
-            videoObject = PseudoLivePlayer;
-
+            videoObject1 = PseudoLivePlayer1;
+            videoObject2 = PseudoLivePlayer2;
             this.Loaded += UpdateVideo;
-
+    
             // 天気取得関数の時限起動設定
             this.darksky_request_manage = new DispatcherTimer();
-            //this.darksky_request_manage.Interval = TimeSpan.FromSeconds(30);
-            this.darksky_request_manage.Interval = TimeSpan.FromMinutes(5);
+            this.darksky_request_manage.Interval = TimeSpan.FromSeconds(20);
             this.darksky_request_manage.Tick += UpdateVideo;
             this.darksky_request_manage.Start();
+
+            // 画面の透過率を変える設定
+            this.transmission_image = new DispatcherTimer();
+            this.transmission_image.Interval = TimeSpan.FromSeconds(1);
+            this.transmission_image.Tick += TransmissionImage;
+            this.transmission_image.Start();
         }
 
-        private static async void ReadVideo2(string weather)
+        private static async void ReadVideo2(string weather, int count)
         {
             int hh = 0;
             int mm = 0;
-            
+            string fileName = "";
+
             DateTime now = DateTime.Now;
 
             //例)8,9,10,11,12→10 | 13.14,15,16,17→15 | 18,19,20,21,22→20
@@ -69,22 +81,42 @@ namespace VirtualWindowUWP
             else if (judge == 9) { mm = real_minute + 1; }
             else { mm = real_minute;  }
 
-            if (mm == 60) { hh = 1 + int.Parse(now.ToString("HH")); }
-            else { hh = int.Parse(now.ToString("HH")); }
-            string fileName = now.ToString("MM") + "_" + weather + "_" + hh + "_" + mm + ".mp4";
+            if ( mm <= 2 || 58 <= mm )
+            {
+                hh = 1 + int.Parse(now.ToString("HH"));
+                Debug.WriteLine(mm);
+                mm = 0;
+                fileName = now.ToString("MM") + "_" + hh + "0" + mm + "_" + weather + ".mp4";
+            }
+            else if (mm == 5) {
+                hh = int.Parse(now.ToString("HH"));
+                fileName = now.ToString("MM") + "_" + hh + "0" + mm + "_" + weather + ".mp4";
+            }
+            else
+            {
+                hh = int.Parse(now.ToString("HH"));
+                fileName = now.ToString("MM") + "_" + hh + "" + mm + "_" + weather + ".mp4";
+            }
+            
             Debug.WriteLine(fileName);
-            StorageFolder targetDir = await StorageFolder.GetFolderFromPathAsync("C:\\Users\\smura\\Videos\\" + now.ToString("MM") + "\\" + weather);
+            StorageFolder targetDir = await StorageFolder.GetFolderFromPathAsync("C:\\Users\\smura\\Videos\\stockvideo\\" + now.ToString("MM") + "\\" + weather);
             StorageFile targetVideo = await targetDir.GetFileAsync(fileName);
 
             var stream = await targetVideo.OpenAsync(Windows.Storage.FileAccessMode.Read);
 
-            videoObject.SetSource(stream, targetVideo.ContentType);
+            if (count == 0)
+            {
+                videoObject1.SetSource(stream, targetVideo.ContentType);
+            }
+            Debug.WriteLine(count);
+            videoObject2.SetSource(stream, targetVideo.ContentType);
         }
 
         private async void UpdateVideo(object sender, object e)
         {
             string currentWeather = await TestSync();
-            ReadVideo2(currentWeather);
+            ReadVideo2(currentWeather, count);
+            count++;
         }
 
         private static async Task<string> TestSync()
@@ -120,15 +152,27 @@ namespace VirtualWindowUWP
             //snow
             else if (weather == "snow" || weather == "sleet")
             {
-                icon = "sonwly";
+                icon = "snowy";
             }
             //foggy
             else if (weather == "fog")
             {
                 icon = "foggy";
             }
-
             return icon;
+        }
+
+        private async void TransmissionImage(object sender, object e)
+        {
+            transmission_speed += 1;
+            if (transmission_speed == 1) {
+                videoObject1.Opacity = 0.1;
+                videoObject2.Opacity = 0.1;
+            }
+            else if (transmission_speed == 10) {
+                videoObject1.Opacity = 1;
+                videoObject2.Opacity = 1;
+            }
         }
 
     }
