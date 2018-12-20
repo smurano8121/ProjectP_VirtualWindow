@@ -34,6 +34,11 @@ namespace VirtualWindowUWP
         private DispatcherTimer transmission_image;
         //透過speedの調整用
         private int transmission_speed;
+        //動画の更新頻度（分）
+        private int refresh_minute = 2;
+        //何秒で完全に透過させるか（S）
+        private int transmission_span = 5;
+        //5 (s)，1(s)〇
 
         public PseudoLivePage()
         {
@@ -182,31 +187,33 @@ namespace VirtualWindowUWP
             transmission_speed += 1;
             Debug.WriteLine(transmission_speed);
 
-            //透過を率を変更する
-            //（詳細）開始10秒で透過0%，4分50秒から透過開始
-            if (transmission_speed <= 2)
-            {
-                videoObject2.Opacity = 0.1 * transmission_speed * 5;
-            }
-            else if (118 <= transmission_speed && transmission_speed <= 120) {
-                videoObject2.Opacity = 0.1 * (120 - transmission_speed) * 5;
-            }
+            //if (transmission_speed == 1)
+            //{
+            //    videoObject2.Opacity = 0.1 * transmission_speed * 10;
+            //}
+            //else if (transmission_speed == 120)
+            //{
+            //    videoObject2.Opacity = 0.1 * (120 - transmission_speed) * 10;
+            //}
 
-            /*if (transmission_speed <= 10)
+            //透過を率を変更する
+            //（詳細）開始（transmission_span）秒で透過0%，（60 * refresh_minute - transmission_span）秒から透過開始
+            if (transmission_speed <= transmission_span)
             {
-                videoObject2.Opacity = 0.1 * transmission_speed;
+                videoObject2.Opacity = 0.1 * transmission_speed * (10 / transmission_span);
             }
-            else if (290 <= transmission_speed && transmission_speed <= 300)
+            else if (60 * refresh_minute - transmission_span <= transmission_speed && transmission_speed <= 60 * refresh_minute)
             {
-                videoObject2.Opacity = 0.1 * (300 - transmission_speed);
-            }*/
+                videoObject2.Opacity = 0.1 * (60 * refresh_minute - transmission_speed) * (10 / transmission_span);
+            }
 
             //動画更新
-            if (transmission_speed == 2) {
+            if (transmission_speed == transmission_span)
+            {
                 string get_icon = await TestSync();
-                ReadVideo2(get_icon,1);
+                ReadVideo2(get_icon, 1);
             }
-            else if (transmission_speed == 120) {
+            else if (transmission_speed == 60 * refresh_minute) {
                 string get_icon = await TestSync();
                 ReadVideo2(get_icon,2);
                 transmission_speed = 0;

@@ -9,8 +9,6 @@
 
     <Grid Background="White">
         <MediaElement x:Name="PseudoLivePlayer1" AutoPlay="True" IsLooping="True" Stretch="UniformToFill"/>
-        <MediaElement x:Name="PseudoLivePlayer2" AutoPlay="True" IsLooping="True" Stretch="UniformToFill"/>
+        <MediaElement x:Name="PseudoLivePlayer2" AutoPlay="True" Opacity = "0.0" IsLooping="True" Stretch="UniformToFill"/>
     </Grid>
 </Page>
-
-<!--Opacity = "0.1"-->
